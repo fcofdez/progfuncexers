@@ -79,7 +79,7 @@ class FunSetSuite extends FunSuite {
       val s3 = singletonSet(3)
       val positive = (x: Int) => (x > 0)
       val lessThan5 = (x: Int) => (x < 5)
-      //val squares = map(positive, x => x * x)
+      val squares = map(positive, x => x * x)
     }
 
   /**
@@ -144,6 +144,7 @@ class FunSetSuite extends FunSuite {
   test("forall") {
     new TestSets {
       assert(forall(s1, x => x > 0))
+      assert(forall(s1, s1))
       assert(forall(positive, x => x > -100))
       assert(!forall(positive, x => x > 100))
     }
@@ -156,10 +157,12 @@ class FunSetSuite extends FunSuite {
     }
   }
 
-  //test("map") {
-    //new TestSets {
-      //assert(exists(squares, x => x == 16))
+  test("map") {
+    new TestSets {
+      assert(contains(squares, 16))
+      assert(exists(squares, x => x == 16))
+      assert(!contains(squares, 17))
       //assert(!exists(squares, x => x == 17))
-    //}
-  //}
+    }
+  }
 }

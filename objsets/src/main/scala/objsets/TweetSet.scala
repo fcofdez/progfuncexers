@@ -2,6 +2,7 @@ package objsets
 
 import common._
 import TweetReader._
+import math._
 
 /**
  * A class to represent tweets.
@@ -10,6 +11,9 @@ class Tweet(val user: String, val text: String, val retweets: Int) {
   override def toString: String =
     "User: " + user + "\n" +
     "Text: " + text + " [" + retweets + "]"
+  def min(that: Tweet): Tweet = 
+    if(that.retweets < retweets) that
+    else this
 }
 
 /**
@@ -68,6 +72,9 @@ abstract class TweetSet {
    */
   //def mostRetweeted: Tweet
 
+  def findMin: Tweet
+
+  def findMinAcc(acc: Tweet): Tweet
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
    * in descending order. In other words, the head of the resulting list should
@@ -77,8 +84,9 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  //def descendingByRetweet: TweetList
-
+  def descendingByRetweet: TweetList
+  
+  def descendingByRetweetAcc(acc: TweetList): TweetList
 
   /**
    * The following methods are already implemented
@@ -127,11 +135,37 @@ class Empty extends TweetSet {
   def remove(tweet: Tweet): TweetSet = this
 
   def foreach(f: Tweet => Unit): Unit = ()
+
+  def findMin: Tweet = null
+
+  def findMinAcc(acc: Tweet): Tweet =
+    acc
+
+  def descendingByRetweet: TweetList = Nil
+
+  def descendingByRetweetAcc(acc: TweetList): TweetList = 
+    acc
 }
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
   def union(that: TweetSet): TweetSet = (right union left) union (that incl elem)
+
+  def descendingByRetweet: TweetList = 
+    descendingByRetweetAcc(Nil)
+
+  def descendingByRetweetAcc(acc: TweetList): TweetList = 
+    remove(findMin).descendingByRetweetAcc(new Cons(findMin, acc))
+    
+
+  def findMin: Tweet =
+    findMinAcc(elem)
+
+  def findMinAcc(acc: Tweet): Tweet =
+    if(acc.retweets > elem.retweets)
+      left.findMinAcc(elem).min(right.findMinAcc(elem))
+    else
+      left.findMinAcc(acc).min(right.findMinAcc(acc))
 
   def filter(p: Tweet => Boolean): TweetSet =
     filterAcc(p, new Empty())
@@ -177,6 +211,7 @@ trait TweetList {
       tail.foreach(f)
     }
 }
+
 
 object Nil extends TweetList {
   def head = throw new java.util.NoSuchElementException("head of EmptyList")

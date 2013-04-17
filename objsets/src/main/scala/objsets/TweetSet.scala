@@ -59,7 +59,14 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-   def union(that: TweetSet): TweetSet
+   def union(that: TweetSet): TweetSet = {
+
+     def unionAcc(that: TweetSet, acc: TweetSet): TweetSet =
+       if(that.isEmpty) acc
+     else unionAcc(that.tail, acc.incl(that.head))
+
+     unionAcc(that, this)
+   }
 
   /**
    * Returns the tweet from this set which has the smallest retweet count.
@@ -114,6 +121,10 @@ abstract class TweetSet {
    * This method takes a function and applies it to every element in the set.
    */
   def foreach(f: Tweet => Unit): Unit
+
+  def isEmpty: Boolean
+  def head: Tweet
+  def tail: TweetSet
 }
 
 class Empty extends TweetSet {
@@ -122,7 +133,6 @@ class Empty extends TweetSet {
 
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
-  def union(t: TweetSet): TweetSet = t
 
   /**
    * The following methods are already implemented
@@ -145,13 +155,16 @@ class Empty extends TweetSet {
 
   def descendingByRetweetAcc(acc: TweetList): TweetList = 
     acc
+
+  def isEmpty = true
+  def head = throw new Exception("Empty.head")
+  def tail = throw new Exception("Empty.tail")
 }
 
-class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
+class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet{
 
-  def union(that: TweetSet): TweetSet = (right union left) union (that incl elem)
 
-  def descendingByRetweet: TweetList = 
+    def descendingByRetweet: TweetList = 
     descendingByRetweetAcc(Nil)
 
   def descendingByRetweetAcc(acc: TweetList): TweetList = 
@@ -194,11 +207,15 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
     else if (elem.text < tw.text) new NonEmpty(elem, left, right.remove(tw))
     else left.union(right)
 
-  def foreach(f: Tweet => Unit): Unit = {
+  override def foreach(f: Tweet => Unit): Unit = {
     f(elem)
     left.foreach(f)
     right.foreach(f)
   }
+
+  def isEmpty = false
+  def head: Tweet = if(left.isEmpty) elem else left.head
+  def tail = if (left.isEmpty) right else new NonEmpty(elem, left.tail, right)
 }
 
 trait TweetList {
@@ -228,14 +245,12 @@ object GoogleVsApple {
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
   val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
 
-  lazy val googleTweets: TweetSet = TweetReader.allTweets.filter(tw => tw.text.contains("android"))
-  lazy val appleTweets: TweetSet = ???
+  val googleTweets: TweetSet = TweetReader.allTweets.filter(p => google.exists(s => p.text.contains(s)))
 
-  /**
-   * A list of all tweets mentioning a keyword from either apple or google,
-   * sorted by the number of retweets.
-   */
-  lazy val trending: TweetList = ???
+  val appleTweets: TweetSet = TweetReader.allTweets.filter(p => apple.exists(s => p.text.contains(s)))
+
+  // Q: from both sets, what is the tweet with highest #retweets?
+  val trending: TweetList = googleTweets.union(appleTweets).descendingByRetweet
 }
 
 object Main extends App {
